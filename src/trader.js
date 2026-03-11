@@ -173,8 +173,8 @@ function kellyBet(fairProb, price, bankrollNow, betType) {
 
 function getMinEdge(minutesLeft, volume) {
   let base = 30;
-  if (minutesLeft <= 5) base = 10;
-  else if (minutesLeft <= 8) base = 12;
+  if (minutesLeft <= 5) base = 8;
+  else if (minutesLeft <= 8) base = 10;
   else if (minutesLeft <= 15) base = 15;
   else if (minutesLeft <= 30) base = 18;
   else if (minutesLeft <= 45) base = 22;
@@ -358,7 +358,7 @@ function evaluate15M(market, btcPrice, momentum) {
   }
 
 const marketImplied15M = (market.yesAsk + (market.yesBid || market.yesAsk)) / 2;
-  fairYes = fairYes * 0.6 + marketImplied15M * 0.4;
+  fairYes = fairYes * 0.7 + marketImplied15M * 0.3;
   // Lower edge threshold when move ratio is very high (strong signal)
   let MIN_EDGE_15M = 12;
   if (moveRatio > 2.0 && minutesLeft <= 5) MIN_EDGE_15M = 8;
@@ -418,7 +418,7 @@ function evaluate(market, btcPrice, momentum) {
   const vol = get5MinVol();
   const rawFair = fairProbAbove(btcPrice, market.strike, market.minutesLeft, vol);
   const marketImplied = (market.yesAsk + (market.yesBid || market.yesAsk)) / 2;
-  const fair = rawFair * 0.6 + marketImplied * 0.4;
+  const fair = rawFair * 0.7 + marketImplied * 0.3;
 
   const distance = Math.abs(btcPrice - market.strike);
   if (distance > MAX_STRIKE_DISTANCE) return [];
