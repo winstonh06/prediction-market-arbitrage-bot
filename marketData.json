@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-03-10T02:53:01.830Z",
+  "scan": 4,
+  "polyMispricing": [],
+  "kalshiMispricing": [
+    {
+      "title": "Will the S&P 500 be between 6925 and 6949.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 7,
+      "no": 96.5,
+      "sum": 103.5,
+      "gap": -3.5
+    },
+    {
+      "title": "Will the S&P 500 be between 6600 and 6624.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 7,
+      "no": 96.5,
+      "sum": 103.5,
+      "gap": -3.5
+    },
+    {
+      "title": "Will the S&P 500 be above 7074.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be below 6375 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 7050 and 7074.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 7025 and 7049.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 7000 and 7024.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 6950 and 6974.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 6575 and 6599.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    },
+    {
+      "title": "Will the S&P 500 be between 6550 and 6574.9999 on Mar 10, 2026 at 4pm EDT?",
+      "yes": 6,
+      "no": 97,
+      "sum": 103,
+      "gap": -3
+    }
+  ],
+  "ranges": [
+    {
+      "asset": "SP500",
+      "count": 42,
+      "total": 299,
+      "dev": 199
+    },
+    {
+      "asset": "GDP",
+      "count": 8,
+      "total": 286.5,
+      "dev": 186.5
+    },
+    {
+      "asset": "BTC",
+      "count": 15,
+      "total": 109,
+      "dev": 9
+    },
+    {
+      "asset": "ETH",
+      "count": 9,
+      "total": 100,
+      "dev": 0
+    }
+  ]
+}

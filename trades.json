@@ -1,0 +1,41 @@
+{
+  "lastUpdate": "2026-03-11T22:33:33.253Z",
+  "bankroll": 49.06,
+  "paperPnL": -50.94,
+  "startingBankroll": 100,
+  "totalTrades": 1,
+  "wins": 22,
+  "losses": 29,
+  "winRate": 43.1,
+  "dailyLoss": 0,
+  "dailyLossDate": "Wed Mar 11 2026",
+  "trades": [
+    {
+      "id": 1,
+      "time": "2026-03-11T22:12:54.442Z",
+      "btcPrice": 70801.0425,
+      "side": "YES",
+      "price": 34,
+      "fair": 56.6,
+      "edge": 21.1,
+      "ticker": "KXBTC15M-26MAR111815-15",
+      "strike": 70764.93,
+      "type": "above",
+      "minutesLeft": 2.1,
+      "expiration": "2026-03-11T22:15:00Z",
+      "betSize": 2.35,
+      "contracts": 6.9,
+      "maxProfit": 4.24,
+      "maxLoss": 2.35,
+      "momentum": "up",
+      "vol": 1.5,
+      "kellyPct": "4.8",
+      "volume": 99370,
+      "is15M": true,
+      "asset": "BTC",
+      "resolved": true,
+      "won": true,
+      "payout": 6.7
+    }
+  ]
+}

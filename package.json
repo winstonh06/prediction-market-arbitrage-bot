@@ -1,28 +1,21 @@
 {
-  "name": "prediction-market-arbitrage-bot",
-  "version": "1.0.0",
-  "description": "Educational arbitrage bot for Polymarket and Kalshi using pmxt.dev",
-  "main": "src/index.js",
+  "name": "kalshi-btc-trader",
+  "version": "9.0.0",
+  "description": "Kalshi BTC prediction market trader with bracket/arb/kelly sizing",
   "type": "module",
+  "main": "trader.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "start": "node trader.js",
+    "paper": "DRY_RUN=true node trader.js",
+    "test-telegram": "node telegramTest.js"
   },
-  "keywords": [
-    "arbitrage",
-    "polymarket",
-    "kalshi",
-    "trading",
-    "bot"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.0.0",
-    "pmxtjs": "^0.4.4"
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "node-fetch": "^3.3.0",
+    "uuid": "^9.0.1"
   },
-  "devDependencies": {
-    "jest": "^30.2.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
