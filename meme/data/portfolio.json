@@ -1,0 +1,79 @@
+{
+  "balance_sol": 9.025,
+  "starting_balance_sol": 10.0,
+  "open_positions": [
+    {
+      "id": "044a9753",
+      "token_mint": "EABV6iHjm281Py4JxLHMqZ9ki4psTx2giCkjCe1Apump",
+      "token_symbol": "UNKNOWN",
+      "status": "open",
+      "entry_trade_id": "f8adbd12",
+      "entry_price_sol": 0.005726612660978009,
+      "entry_amount_token": 87.09337081562313,
+      "entry_cost_sol": 0.5,
+      "entry_timestamp": 1773278188.0622704,
+      "triggered_by_wallet": "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2",
+      "current_price_sol": 0.0056080790717662225,
+      "peak_price_sol": 0.005726612660978009,
+      "exit_trade_id": null,
+      "exit_price_sol": 0.0,
+      "exit_amount_sol": 0.0,
+      "exit_timestamp": null
+    },
+    {
+      "id": "486bb009",
+      "token_mint": "DgXjupqUXCMRzyR98WxKPdhxyLC72MdtMJULu4C3pump",
+      "token_symbol": "UNKNOWN",
+      "status": "open",
+      "entry_trade_id": "a3b44577",
+      "entry_price_sol": 0.016746823736153996,
+      "entry_amount_token": 28.292678508170276,
+      "entry_cost_sol": 0.47500000000000003,
+      "entry_timestamp": 1773278190.4554555,
+      "triggered_by_wallet": "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2",
+      "current_price_sol": 0.016446067898581863,
+      "peak_price_sol": 0.017142243231628707,
+      "exit_trade_id": null,
+      "exit_price_sol": 0.0,
+      "exit_amount_sol": 0.0,
+      "exit_timestamp": null
+    }
+  ],
+  "closed_positions": [],
+  "trade_history": [
+    {
+      "id": "f8adbd12",
+      "triggered_by": "7814172c",
+      "wallet_address": "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2",
+      "wallet_label": "smart_money_5",
+      "direction": "buy",
+      "token_mint": "EABV6iHjm281Py4JxLHMqZ9ki4psTx2giCkjCe1Apump",
+      "token_symbol": "UNKNOWN",
+      "amount_token": 87.09337081562313,
+      "amount_sol": 0.5,
+      "price_per_token_sol": 0.005726612660978009,
+      "slippage_sol": 0.007071067811865506,
+      "fee_sol": 0.00125,
+      "total_cost_sol": 0.5,
+      "timestamp": 1773278188.0622058
+    },
+    {
+      "id": "a3b44577",
+      "triggered_by": "4066ec60",
+      "wallet_address": "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2",
+      "wallet_label": "smart_money_5",
+      "direction": "buy",
+      "token_mint": "DgXjupqUXCMRzyR98WxKPdhxyLC72MdtMJULu4C3pump",
+      "token_symbol": "UNKNOWN",
+      "amount_token": 28.292678508170276,
+      "amount_sol": 0.47500000000000003,
+      "price_per_token_sol": 0.016746823736153996,
+      "slippage_sol": 0.006547423157242827,
+      "fee_sol": 0.0011875000000000002,
+      "total_cost_sol": 0.47500000000000003,
+      "timestamp": 1773278190.4554248
+    }
+  ],
+  "total_trades": 2,
+  "created_at": 1773277997.7293446
+}

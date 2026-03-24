@@ -1,0 +1,80 @@
+{
+  "DpYuj2At1Z1tH4baoz5A1XV4AanjJa8bgbB51BWSZUyn": {
+    "address": "DpYuj2At1Z1tH4baoz5A1XV4AanjJa8bgbB51BWSZUyn",
+    "label": "smart_money_1",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.7294295
+  },
+  "H5PLekYByxtFj5Eecr7oL4woaGNuLf6jFMR6i3nTvw85": {
+    "address": "H5PLekYByxtFj5Eecr7oL4woaGNuLf6jFMR6i3nTvw85",
+    "label": "smart_money_2",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.72968
+  },
+  "95SKdgFtw9AGt7N9TAWFKkVm8b2hpnheKyfGm8Fha8x4": {
+    "address": "95SKdgFtw9AGt7N9TAWFKkVm8b2hpnheKyfGm8Fha8x4",
+    "label": "smart_money_3",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.729991
+  },
+  "93kgxYKex5wPyEkjH9P4KspLFAi3fdWBkw8vZce51pbp": {
+    "address": "93kgxYKex5wPyEkjH9P4KspLFAi3fdWBkw8vZce51pbp",
+    "label": "smart_money_4",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.7302804
+  },
+  "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2": {
+    "address": "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2",
+    "label": "smart_money_5",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.7305899
+  },
+  "EG9jxLSrsgSNaD1aGyNEVnhbgtEmxzBffFxPUaxNdjrz": {
+    "address": "EG9jxLSrsgSNaD1aGyNEVnhbgtEmxzBffFxPUaxNdjrz",
+    "label": "smart_money_6",
+    "total_trades_observed": 0,
+    "profitable_trades": 0,
+    "win_rate": 0.0,
+    "avg_return_pct": 0.0,
+    "best_trade_pct": 0.0,
+    "worst_trade_pct": 0.0,
+    "total_pnl_sol": 0.0,
+    "confidence_score": 0.0,
+    "last_updated": 1773277997.73094
+  }
+}

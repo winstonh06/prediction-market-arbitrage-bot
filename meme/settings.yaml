@@ -1,0 +1,72 @@
+rpc:
+  endpoint: "https://mainnet.helius-rpc.com/?api-key=a23738f5-8e57-469d-9300-1b19a7add384"
+  rate_limit: 5
+  timeout: 30
+
+wallets:
+  - address: "DpYuj2At1Z1tH4baoz5A1XV4AanjJa8bgbB51BWSZUyn"
+    label: "smart_money_1"
+    enabled: true
+  - address: "H5PLekYByxtFj5Eecr7oL4woaGNuLf6jFMR6i3nTvw85"
+    label: "smart_money_2"
+    enabled: true
+  - address: "95SKdgFtw9AGt7N9TAWFKkVm8b2hpnheKyfGm8Fha8x4"
+    label: "smart_money_3"
+    enabled: true
+  - address: "93kgxYKex5wPyEkjH9P4KspLFAi3fdWBkw8vZce51pbp"
+    label: "smart_money_4"
+    enabled: true
+  - address: "GqYUUbABiSbyQE215jeAUiiefAEo5qRZ65QdHf4ELEw2"
+    label: "smart_money_5"
+    enabled: true
+  - address: "EG9jxLSrsgSNaD1aGyNEVnhbgtEmxzBffFxPUaxNdjrz"
+    label: "smart_money_6"
+    enabled: true
+
+monitoring:
+  poll_interval: 10
+  tx_fetch_limit: 20
+  lookback_hours: 24
+
+strategy:
+  min_wallet_score: 0.0
+  max_position_size_pct: 0.05
+  stop_loss_pct: 0.30
+  take_profit_pct: 1.00
+  trailing_stop_pct: 0.20
+  max_open_positions: 10
+  cooldown_seconds: 300
+  copy_buys_only: true
+
+safety:
+  min_liquidity_usd: 10000
+  max_holder_concentration: 0.30
+  require_mint_revoked: true
+  require_freeze_revoked: true
+  min_holders: 100
+  max_token_age_hours: 72
+  blacklist: []
+
+paper_trading:
+  enabled: true
+  starting_balance_sol: 10.0
+  slippage_pct: 0.02
+  fee_pct: 0.0025
+  price_impact_model: "sqrt"
+  save_interval: 5
+
+logging:
+  level: "INFO"
+  file_enabled: true
+  file_path: "data/tracker.log"
+  rich_console: true
+
+data:
+  directory: "data"
+  portfolio_file: "data/portfolio.json"
+  trades_file: "data/trades.json"
+  scores_file: "data/wallet_scores.json"
+
+telegram:
+  bot_token: "8649859126:AAGrgR2uHcWM-7xRsinOXEULs5MNc1NxRkE"
+  chat_id: "7757476784"
