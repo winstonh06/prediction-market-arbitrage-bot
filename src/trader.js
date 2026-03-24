@@ -42,13 +42,13 @@ const BALANCE_SYNC_INTERVAL = 60000;
 
 // DATA-DRIVEN RULES
 const MAX_BET_FRACTION = 0.03;      // 3% max per trade (was 6-12%)
-const MIN_EDGE = 12;                // 12c minimum always
+const MIN_EDGE = 8;                // 12c minimum always
 const MAX_MINUTES_1H = 10;           // Only trade under 8 min
 const MAX_MINUTES_15M = 12;          // Same for 15M
 const MIN_MINUTES = 1.5;            // Not too close to expiry
 const MAX_FAIR_VALUE = 88;          // Skip if model says > 88% (Fair:92 bug)
-const MAX_FAIR_GAP = 25;            // Skip if fair vs market > 25c apart
-const YES_ONLY = true;              // Data says YES = 67% WR, NO = 21%
+const MAX_FAIR_GAP = 30;            // Skip if fair vs market > 25c apart
+const YES_ONLY = false;              // Data says YES = 67% WR, NO = 21%
 
 let scanCount = 0;
 let totalEdges = 0;
