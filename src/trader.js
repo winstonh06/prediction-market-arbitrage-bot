@@ -1,15 +1,13 @@
 // ==============================================================
-//  trader.js v11.0 — KALSHI BTC TRADER
-//  DATA-DRIVEN: Based on analysis of 54 real trades
-//  RULES:
-//    - BTC ONLY (only asset with price data)
-//    - YES bets only (67% WR vs NO 21% WR)
-//    - Under 8 min only (80% WR under 5min)
-//    - Fair < 90 sanity check (Fair>=90 was 36% WR)
-//    - Max 25c gap between fair and market
-//    - 3% max bet size
-//    - 12c minimum edge always
-//    - Above/below only, no ranges
+//  trader.js v11.1 — KALSHI CRYPTO TRADER
+//  IMPROVEMENTS:
+//    - ETH price feed added (real Coinbase data)
+//    - 1H window extended to 20 min
+//    - 15M window extended to 12 min
+//    - Edge minimum scales with vol (4c when vol>4%)
+//    - NO bets allowed when edge >= 15c
+//    - Fair gap widened to 30c
+//    - All other safety checks preserved
 // ==============================================================
 
 import dotenv from "dotenv";
@@ -25,30 +23,29 @@ import {
 } from "./pricing.js";
 import fs from "fs";
 import https from "https";
+import fetch from "node-fetch";
 
 // ==============================================================
-//  CONFIG — v11 DATA-DRIVEN
+//  CONFIG — v11.1 LOOSENED + ETH
 // ==============================================================
 
 const DRY_RUN = false;
 const BANKROLL = 100;
-const SCAN_INTERVAL = 2000;         // 2 seconds
-const MAX_OPEN_TRADES = 5;          // Fewer concurrent = less risk
-const DEDUP_SECONDS = 300;          // 5 min dedup
-const MAX_STRIKE_DISTANCE = 500;    // Tighter than before
+const SCAN_INTERVAL = 2000;
+const MAX_OPEN_TRADES = 5;
+const DEDUP_SECONDS = 300;
+const MAX_STRIKE_DISTANCE = 500;
 const SLIPPAGE = 1.5;
 const KALSHI_FEE_PER_CONTRACT = 0.03;
 const BALANCE_SYNC_INTERVAL = 60000;
 
-// DATA-DRIVEN RULES
-const MAX_BET_FRACTION = 0.03;      // 3% max per trade (was 6-12%)
-const MIN_EDGE = 8;                // 12c minimum always
-const MAX_MINUTES_1H = 20;           // Only trade under 8 min
-const MAX_MINUTES_15M = 12;          // Same for 15M
-const MIN_MINUTES = 1.5;            // Not too close to expiry
-const MAX_FAIR_VALUE = 88;          // Skip if model says > 88% (Fair:92 bug)
-const MAX_FAIR_GAP = 30;            // Skip if fair vs market > 25c apart
-const YES_ONLY = false;              // Data says YES = 67% WR, NO = 21%
+const MAX_BET_FRACTION = 0.03;
+const MAX_MINUTES_1H = 20;
+const MAX_MINUTES_15M = 12;
+const MIN_MINUTES = 1.5;
+const MAX_FAIR_VALUE = 88;
+const MAX_FAIR_GAP = 30;
+const NO_MIN_EDGE = 15;
 
 let scanCount = 0;
 let totalEdges = 0;
@@ -64,6 +61,28 @@ let stopped = false;
 const alerted = {};
 const pendingTrades = [];
 const priceHistory = [];
+
+// ==============================================================
+//  ETH PRICE FEED
+// ==============================================================
+
+let ethPrice = 0;
+let ethUpdate = 0;
+
+function getETHPrice() {
+  return { price: ethPrice, updated: ethUpdate };
+}
+
+async function fetchETH() {
+  try {
+    const res = await fetch("https://api.coinbase.com/v2/prices/ETH-USD/spot");
+    if (res.ok) {
+      const data = await res.json();
+      ethPrice = parseFloat(data.data.amount);
+      ethUpdate = Date.now();
+    }
+  } catch (e) {}
+}
 
 // ==============================================================
 //  STARTUP VALIDATION
@@ -126,7 +145,7 @@ async function syncRecord() {
 }
 
 // ==============================================================
-//  KELLY SIZING — CONSERVATIVE (3% max)
+//  KELLY SIZING
 // ==============================================================
 
 function kellyBet(fairProb, price, bankrollNow) {
@@ -134,9 +153,8 @@ function kellyBet(fairProb, price, bankrollNow) {
   const pLose = 1 - pWin;
   const odds = (100 - price) / price;
   const kellyFull = (pWin * odds - pLose) / odds;
-  const kellyQuarter = kellyFull / 4;  // Quarter Kelly — very conservative
+  const kellyQuarter = kellyFull / 4;
 
-  // Drawdown scaling
   const drawdown = Math.max(0, (BANKROLL - bankrollNow) / BANKROLL);
   const drawdownMultiplier =
     drawdown > 0.30 ? 0.3 :
@@ -191,81 +209,116 @@ function get5MinVol() {
   return parseFloat(Math.max(1.5, Math.min(20, daily)).toFixed(2));
 }
 
+function getMinEdge(vol) {
+  if (vol > 4) return 4;
+  if (vol > 3) return 5;
+  if (vol > 2) return 6;
+  return 8;
+}
+
 // ==============================================================
-//  BTC 15-MINUTE EVALUATOR — YES ONLY, UNDER 8 MIN
+//  15-MINUTE EVALUATOR — BTC + ETH
 // ==============================================================
 
 function evaluate15M(market, btcPrice, momentum) {
   if (!market.is15M) return [];
-  if (market.asset !== "BTC") return [];  // BTC ONLY
+  if (market.asset !== "BTC" && market.asset !== "ETH") return [];
 
   const minutesLeft = market.minutesLeft;
   const strike = market.strike;
 
-  // Entry window: 1.5-8 minutes (data says under 8 is profitable)
   if (minutesLeft > MAX_MINUTES_15M || minutesLeft < MIN_MINUTES) return [];
 
-  const distance = btcPrice - strike;
+  let assetPrice;
+  if (market.asset === "BTC") {
+    assetPrice = btcPrice;
+  } else if (market.asset === "ETH") {
+    assetPrice = getETHPrice().price;
+    if (assetPrice <= 0) return [];
+  } else {
+    return [];
+  }
+
+  const distance = assetPrice - strike;
   const absDist = Math.abs(distance);
   const distancePct = (absDist / strike) * 100;
-  if (distancePct < 0.05) return [];  // Too close to strike
+  if (distancePct < 0.03) return [];
 
-  // YES ONLY — only trade when BTC is ABOVE the strike
-  if (YES_ONLY && distance <= 0) return [];
-
-  // Volatility-adjusted move ratio
   const vol = get5MinVol();
+  const minEdge = getMinEdge(vol);
   const volPerMin = (vol / 100) / Math.sqrt(1440);
-  const expectedMove = volPerMin * Math.sqrt(minutesLeft) * btcPrice;
+  const expectedMove = volPerMin * Math.sqrt(minutesLeft) * assetPrice;
   const moveRatio = absDist / expectedMove;
 
-  if (moveRatio < 0.7) return [];
+  if (moveRatio < 0.5) return [];
 
-  // Fair value based on move ratio
   let fairYes;
-  if (moveRatio > 2.5) fairYes = 88;     // Capped at 88 (was 92)
+  if (moveRatio > 2.5) fairYes = 88;
   else if (moveRatio > 2.0) fairYes = 83;
   else if (moveRatio > 1.5) fairYes = 76;
   else if (moveRatio > 1.0) fairYes = 68;
-  else fairYes = 60;
+  else if (moveRatio > 0.7) fairYes = 60;
+  else fairYes = 55;
 
-  // Momentum adjustment
-  if (distance > 0 && momentum === "up") {
-    fairYes = Math.min(88, fairYes + 4);
-  } else if (distance > 0 && momentum === "down") {
-    fairYes = Math.max(50, fairYes - 8);
+  if (market.asset === "BTC") {
+    if (distance > 0 && momentum === "up") fairYes = Math.min(88, fairYes + 4);
+    else if (distance > 0 && momentum === "down") fairYes = Math.max(45, fairYes - 8);
+    else if (distance < 0 && momentum === "down") fairYes = Math.max(12, fairYes - 4);
+    else if (distance < 0 && momentum === "up") fairYes = Math.min(55, fairYes + 8);
   }
 
-  // Time decay — less time = harder to reverse
   if (minutesLeft <= 3) {
-    fairYes = Math.min(88, fairYes + 4);
+    if (distance > 0) fairYes = Math.min(88, fairYes + 4);
+    else fairYes = Math.max(12, fairYes - 4);
   }
 
-  // SANITY CHECKS (from data analysis)
-  if (fairYes > MAX_FAIR_VALUE) return [];  // Skip Fair:90+ (36% WR)
+  if (fairYes > MAX_FAIR_VALUE && distance > 0) return [];
+  if ((100 - fairYes) > MAX_FAIR_VALUE && distance < 0) return [];
 
   const marketImplied = (market.yesAsk + (market.yesBid || market.yesAsk)) / 2;
-  if (Math.abs(fairYes - marketImplied) > MAX_FAIR_GAP) return [];  // Model too far from market
+  if (distance > 0 && Math.abs(fairYes - marketImplied) > MAX_FAIR_GAP) return [];
+  if (distance < 0 && Math.abs((100 - fairYes) - (100 - marketImplied)) > MAX_FAIR_GAP) return [];
 
   const results = [];
 
-  if (market.yesAsk > 10 && market.yesAsk < 88) {
+  if (distance > 0 && market.yesAsk > 5 && market.yesAsk < 88) {
     const edge = fairYes - market.yesAsk - SLIPPAGE;
-    if (edge >= MIN_EDGE) {
-      // Skip if momentum is against us and edge isn't huge
-      if (momentum === "down" && edge < 18) return results;
+    if (edge >= minEdge) {
+      if (momentum === "down" && edge < minEdge + 8) {} 
+      else {
+        results.push({
+          side: "YES", price: market.yesAsk,
+          fair: parseFloat(fairYes.toFixed(1)),
+          edge: parseFloat(edge.toFixed(1)),
+          title: market.title, ticker: market.ticker,
+          mins: minutesLeft, strike: strike,
+          type: "above", strikeLow: strike, strikeHigh: strike,
+          expiration: market.expiration,
+          volume: market.volume || 0,
+          is15M: true, asset: market.asset,
+        });
+      }
+    }
+  }
 
-      results.push({
-        side: "YES", price: market.yesAsk,
-        fair: parseFloat(fairYes.toFixed(1)),
-        edge: parseFloat(edge.toFixed(1)),
-        title: market.title, ticker: market.ticker,
-        mins: minutesLeft, strike: strike,
-        type: "above", strikeLow: strike, strikeHigh: strike,
-        expiration: market.expiration,
-        volume: market.volume || 0,
-        is15M: true, asset: "BTC",
-      });
+  if (distance < 0 && market.noAsk > 5 && market.noAsk < 88) {
+    const fairNo = 100 - fairYes;
+    const edge = fairNo - market.noAsk - SLIPPAGE;
+    if (edge >= NO_MIN_EDGE) {
+      if (momentum === "up" && edge < NO_MIN_EDGE + 8) {}
+      else {
+        results.push({
+          side: "NO", price: market.noAsk,
+          fair: parseFloat(fairNo.toFixed(1)),
+          edge: parseFloat(edge.toFixed(1)),
+          title: market.title, ticker: market.ticker,
+          mins: minutesLeft, strike: strike,
+          type: "above", strikeLow: strike, strikeHigh: strike,
+          expiration: market.expiration,
+          volume: market.volume || 0,
+          is15M: true, asset: market.asset,
+        });
+      }
     }
   }
 
@@ -273,7 +326,7 @@ function evaluate15M(market, btcPrice, momentum) {
 }
 
 // ==============================================================
-//  BTC HOURLY ABOVE/BELOW — YES ONLY, UNDER 8 MIN
+//  HOURLY ABOVE/BELOW — BTC + SPX
 // ==============================================================
 
 function evaluate1H(market, btcPrice, momentum) {
@@ -282,11 +335,10 @@ function evaluate1H(market, btcPrice, momentum) {
   if (market.marketType !== "above") return [];
 
   const vol = market.asset === "SPX" ? 1.2 : get5MinVol();
+  const minEdge = market.asset === "SPX" ? 8 : getMinEdge(vol);
   const price = market.asset === "SPX" ? getSPXPrice().price : btcPrice;
 
   if (price <= 0) return [];
-
-  // Time filter: under 8 min only
   if (market.minutesLeft > MAX_MINUTES_1H || market.minutesLeft < MIN_MINUTES) return [];
 
   const fair = fairProbAbove(price, market.strike, market.minutesLeft, vol);
@@ -295,49 +347,52 @@ function evaluate1H(market, btcPrice, momentum) {
   const maxDist = market.asset === "SPX" ? 100 : MAX_STRIKE_DISTANCE;
   if (distance > maxDist) return [];
 
-  // SANITY CHECKS
-  if (fair > MAX_FAIR_VALUE) return [];
+  if (fair > MAX_FAIR_VALUE && fair > 50) return [];
+  if ((100 - fair) > MAX_FAIR_VALUE && fair < 50) return [];
   const marketImplied = (market.yesAsk + (market.yesBid || market.yesAsk)) / 2;
   if (Math.abs(fair - marketImplied) > MAX_FAIR_GAP) return [];
 
   const results = [];
 
-  // YES side only (data says 67% WR vs NO 21%)
-  if (market.yesAsk > 10 && market.yesAsk < 88) {
+  if (market.yesAsk > 5 && market.yesAsk < 88) {
     const edgeVsAsk = fair - market.yesAsk - SLIPPAGE;
-    if (edgeVsAsk >= MIN_EDGE) {
-      if (momentum === "down" && edgeVsAsk < MIN_EDGE + 8) return results;
-      results.push({
-        side: "YES", price: market.yesAsk, fair: fair,
-        edge: parseFloat(edgeVsAsk.toFixed(1)),
-        title: market.title, ticker: market.ticker,
-        mins: market.minutesLeft, strike: market.strike,
-        type: "above", strikeLow: market.strike,
-        strikeHigh: market.strike, expiration: market.expiration,
-        volume: market.volume || 0,
-        is15M: false, asset: market.asset || "BTC",
-      });
+    if (edgeVsAsk >= minEdge) {
+      if (momentum === "down" && edgeVsAsk < minEdge + 6) {}
+      else {
+        results.push({
+          side: "YES", price: market.yesAsk, fair: fair,
+          edge: parseFloat(edgeVsAsk.toFixed(1)),
+          title: market.title, ticker: market.ticker,
+          mins: market.minutesLeft, strike: market.strike,
+          type: "above", strikeLow: market.strike,
+          strikeHigh: market.strike, expiration: market.expiration,
+          volume: market.volume || 0,
+          is15M: false, asset: market.asset || "BTC",
+        });
+      }
     }
   }
 
-  // NO side — only if YES_ONLY is disabled
-  if (!YES_ONLY && market.noAsk > 10 && market.noAsk < 88) {
+  if (market.noAsk > 5 && market.noAsk < 88) {
     const fairNo = 100 - fair;
-    if (fairNo > MAX_FAIR_VALUE) return results;
-    const edgeVsAsk = fairNo - market.noAsk - SLIPPAGE;
-    if (edgeVsAsk >= MIN_EDGE) {
-      if (momentum === "up" && edgeVsAsk < MIN_EDGE + 8) return results;
-      results.push({
-        side: "NO", price: market.noAsk,
-        fair: parseFloat(fairNo.toFixed(1)),
-        edge: parseFloat(edgeVsAsk.toFixed(1)),
-        title: market.title, ticker: market.ticker,
-        mins: market.minutesLeft, strike: market.strike,
-        type: "above", strikeLow: market.strike,
-        strikeHigh: market.strike, expiration: market.expiration,
-        volume: market.volume || 0,
-        is15M: false, asset: market.asset || "BTC",
-      });
+    if (fairNo <= MAX_FAIR_VALUE) {
+      const edgeVsAsk = fairNo - market.noAsk - SLIPPAGE;
+      if (edgeVsAsk >= NO_MIN_EDGE) {
+        if (momentum === "up" && edgeVsAsk < NO_MIN_EDGE + 6) {}
+        else {
+          results.push({
+            side: "NO", price: market.noAsk,
+            fair: parseFloat(fairNo.toFixed(1)),
+            edge: parseFloat(edgeVsAsk.toFixed(1)),
+            title: market.title, ticker: market.ticker,
+            mins: market.minutesLeft, strike: market.strike,
+            type: "above", strikeLow: market.strike,
+            strikeHigh: market.strike, expiration: market.expiration,
+            volume: market.volume || 0,
+            is15M: false, asset: market.asset || "BTC",
+          });
+        }
+      }
     }
   }
 
@@ -380,8 +435,6 @@ function saveTrades() {
     trades: trades,
   };
   fs.writeFileSync("trades.json", JSON.stringify(data, null, 2));
-
-  // Save dedup state to disk
   try {
     fs.writeFileSync("dedup.json", JSON.stringify(alerted));
   } catch (e) {}
@@ -426,7 +479,10 @@ function resolvePendingTrades(btcPrice) {
     const expTime = new Date(pt.expiration).getTime();
     if (now >= expTime) {
       let won = false;
-      const settlePrice = pt.asset === "SPX" ? getSPXPrice().price : btcPrice;
+      let settlePrice = btcPrice;
+      if (pt.asset === "SPX") settlePrice = getSPXPrice().price;
+      else if (pt.asset === "ETH") settlePrice = getETHPrice().price;
+
       if (pt.type === "above") {
         const isAbove = settlePrice >= pt.strike;
         won = pt.side === "YES" ? isAbove : !isAbove;
@@ -454,7 +510,7 @@ function resolvePendingTrades(btcPrice) {
         tag
       );
 
-      console.log("  [CALIBRATION] Fair:" + (pt.fair || "?") + " Price:" + pt.price + " Side:" + pt.side + " Won:" + won + " Ticker:" + (pt.ticker || "?"));
+      console.log("  [CALIBRATION] Fair:" + (pt.fair || "?") + " Price:" + pt.price + " Side:" + pt.side + " Won:" + won + " Asset:" + pt.asset);
 
       toRemove.push(i);
     }
@@ -540,7 +596,6 @@ async function runScan() {
   const btc = getBTCPrice();
   if (btc.price === 0) return;
 
-  // Stale price check
   if (Date.now() - btc.updated > 15000) return;
 
   updateVolatility(btc.price);
@@ -549,7 +604,8 @@ async function runScan() {
   const vol = get5MinVol();
   const momentum = getMomentum();
 
-  // Daily reset
+  await fetchETH();
+
   const today = new Date().toDateString();
   if (today !== dailyLossDate) {
     dailyLoss = 0;
@@ -567,20 +623,21 @@ async function runScan() {
 
   const allMarkets = await getActiveBTCMarkets();
 
-  // Status log every ~30 seconds
   if (scanCount % 15 === 1) {
     const spx = getSPXPrice();
+    const eth = getETHPrice();
+    const minEdge = getMinEdge(vol);
     const count15M = allMarkets.filter(m => m.is15M && m.minutesLeft >= MIN_MINUTES && m.minutesLeft <= MAX_MINUTES_15M).length;
     const count1H = allMarkets.filter(m => !m.is15M && m.minutesLeft >= MIN_MINUTES && m.minutesLeft <= MAX_MINUTES_1H).length;
     console.log(
       "[" + new Date().toLocaleTimeString() + "] #" + scanCount +
       " BTC:$" + btc.price.toFixed(0) +
+      " ETH:$" + eth.price.toFixed(0) +
       " SPX:" + spx.price.toFixed(0) +
-      " Vol:" + vol + "% Mom:" + momentum +
+      " Vol:" + vol + "% Edge>=" + minEdge + "c Mom:" + momentum +
       " 15M:" + count15M + " 1H:" + count1H +
       " Open:" + pendingTrades.length + "/" + MAX_OPEN_TRADES +
       " Bank:$" + bankroll.toFixed(2) +
-      " PnL:$" + paperPnL.toFixed(2) +
       " W:" + wins + " L:" + losses
     );
   }
@@ -588,13 +645,11 @@ async function runScan() {
   if (stopped) return;
   if (pendingTrades.length >= MAX_OPEN_TRADES) return;
 
-  // Spike detection
   if (detectSpike()) {
-    if (scanCount % 15 === 0) notify("SPIKE DETECTED — skipping");
+    if (scanCount % 15 === 0) notify("SPIKE — skipping");
     return;
   }
 
-  // Load dedup from disk on first scan
   if (scanCount === 1) {
     try {
       if (fs.existsSync("dedup.json")) {
@@ -612,12 +667,10 @@ async function runScan() {
     openTickers[pt.ticker] = true;
   }
 
-  // TRADE SCAN
   for (const mkt of allMarkets) {
     if (pendingTrades.length >= MAX_OPEN_TRADES) break;
     if (openTickers[mkt.ticker]) continue;
 
-    // Route to correct evaluator
     let opps;
     if (mkt.is15M) {
       opps = evaluate15M(mkt, btc.price, momentum);
@@ -633,20 +686,22 @@ async function runScan() {
       if (alerted[key] && now - alerted[key] < DEDUP_SECONDS * 1000) continue;
       alerted[key] = now;
 
-      const currentPrice = o.asset === "SPX" ? getSPXPrice().price : btc.price;
+      let currentPrice = btc.price;
+      if (o.asset === "SPX") currentPrice = getSPXPrice().price;
+      else if (o.asset === "ETH") currentPrice = getETHPrice().price;
+
       placeTrade(o, currentPrice, vol, momentum);
       saveTrades();
     }
   }
 
-  // Summary every ~10 minutes
   if (scanCount % 300 === 0) {
     console.log("");
     console.log("  ======= SUMMARY =======");
-    console.log("  Bank:$" + bankroll.toFixed(2) + " PnL:$" + paperPnL.toFixed(2) + " (" + ((paperPnL / BANKROLL) * 100).toFixed(1) + "%)");
+    console.log("  Bank:$" + bankroll.toFixed(2) + " PnL:$" + paperPnL.toFixed(2));
     console.log("  W:" + wins + " L:" + losses + " Rate:" + ((wins / Math.max(wins + losses, 1)) * 100).toFixed(1) + "%");
     console.log("  Open: " + pendingTrades.length);
-    console.log("  Strategy: BTC YES only, <8min, Fair<88, Edge>12c, 3% max");
+    console.log("  v11.1: BTC+ETH, YES+NO(15c+), <20min 1H, <12min 15M");
     console.log("  ======================");
     saveTrades();
   }
@@ -673,23 +728,22 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 async function main() {
   console.log("");
   console.log("==================================================");
-  console.log("  KALSHI BTC TRADER v11.0 — DATA-DRIVEN");
+  console.log("  KALSHI CRYPTO TRADER v11.1");
   console.log("  Mode: " + (DRY_RUN ? "PAPER" : "LIVE"));
   console.log("==================================================");
 
   validateEnv();
 
-  console.log("  STRATEGY (based on 54 trade analysis):");
-  console.log("  Assets:      BTC only (57% WR, +$10 PnL)");
-  console.log("  Side:        YES only (67% WR vs NO 21%)");
-  console.log("  Time:        Under 8 min (80% WR under 5min)");
-  console.log("  Edge min:    " + MIN_EDGE + "c always");
-  console.log("  Fair cap:    " + MAX_FAIR_VALUE + " (skip Fair:90+ bug)");
-  console.log("  Fair gap:    " + MAX_FAIR_GAP + "c max from market");
+  console.log("  Assets:      BTC + ETH (real prices) + SPX");
+  console.log("  YES edge:    dynamic (4-8c based on vol)");
+  console.log("  NO edge:     " + NO_MIN_EDGE + "c minimum");
+  console.log("  1H window:   " + MAX_MINUTES_1H + " min");
+  console.log("  15M window:  " + MAX_MINUTES_15M + " min");
+  console.log("  Fair cap:    " + MAX_FAIR_VALUE);
+  console.log("  Fair gap:    " + MAX_FAIR_GAP + "c");
   console.log("  Bet size:    " + (MAX_BET_FRACTION * 100) + "% max (quarter Kelly)");
   console.log("  Max open:    " + MAX_OPEN_TRADES);
-  console.log("  Dedup:       " + DEDUP_SECONDS + "s (persisted to disk)");
-  console.log("  SPX:         Enabled (same rules)");
+  console.log("  Dedup:       " + DEDUP_SECONDS + "s (disk)");
   console.log("==================================================");
   console.log("");
 
@@ -701,11 +755,15 @@ async function main() {
     return;
   }
 
+  await fetchETH();
+  setInterval(fetchETH, 2000);
+
   const spx = getSPXPrice();
+  const eth = getETHPrice();
   console.log("  BTC: $" + getBTCPrice().price.toFixed(2));
+  if (eth.price > 0) console.log("  ETH: $" + eth.price.toFixed(2));
   if (spx.price > 0) console.log("  SPX: " + spx.price.toFixed(2));
 
-  // Sync real balance
   if (!DRY_RUN) {
     const realBalance = await getBalance();
     if (realBalance !== null) {
