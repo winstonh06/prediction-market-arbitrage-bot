@@ -40,12 +40,12 @@ const KALSHI_FEE_PER_CONTRACT = 0.03;
 const BALANCE_SYNC_INTERVAL = 60000;
 
 const MAX_BET_FRACTION = 0.03;
-const MAX_MINUTES_1H = 20;
+const MAX_MINUTES_1H = 40;
 const MAX_MINUTES_15M = 12;
 const MIN_MINUTES = 1.5;
 const MAX_FAIR_VALUE = 88;
-const MAX_FAIR_GAP = 30;
-const NO_MIN_EDGE = 15;
+const MAX_FAIR_GAP = 40;
+const NO_MIN_EDGE = 5;
 
 let scanCount = 0;
 let totalEdges = 0;
@@ -210,10 +210,7 @@ function get5MinVol() {
 }
 
 function getMinEdge(vol) {
-  if (vol > 4) return 4;
-  if (vol > 3) return 5;
-  if (vol > 2) return 6;
-  return 8;
+  return 3;
 }
 
 // ==============================================================
@@ -242,7 +239,7 @@ function evaluate15M(market, btcPrice, momentum) {
   const distance = assetPrice - strike;
   const absDist = Math.abs(distance);
   const distancePct = (absDist / strike) * 100;
-  if (distancePct < 0.03) return [];
+  if (distancePct < 0.01) return [];
 
   const vol = get5MinVol();
   const minEdge = getMinEdge(vol);
@@ -250,7 +247,7 @@ function evaluate15M(market, btcPrice, momentum) {
   const expectedMove = volPerMin * Math.sqrt(minutesLeft) * assetPrice;
   const moveRatio = absDist / expectedMove;
 
-  if (moveRatio < 0.5) return [];
+  if (moveRatio < 0.3) return [];
 
   let fairYes;
   if (moveRatio > 2.5) fairYes = 88;
@@ -284,7 +281,7 @@ function evaluate15M(market, btcPrice, momentum) {
   if (distance > 0 && market.yesAsk > 5 && market.yesAsk < 88) {
     const edge = fairYes - market.yesAsk - SLIPPAGE;
     if (edge >= minEdge) {
-      if (momentum === "down" && edge < minEdge + 8) {} 
+      if (momentum === "down" && edge < minEdge + 2) {} 
       else {
         results.push({
           side: "YES", price: market.yesAsk,
@@ -335,7 +332,7 @@ function evaluate1H(market, btcPrice, momentum) {
   if (market.marketType !== "above") return [];
 
   const vol = market.asset === "SPX" ? 1.2 : get5MinVol();
-  const minEdge = market.asset === "SPX" ? 8 : getMinEdge(vol);
+  const minEdge = market.asset === "SPX" ? 2 : getMinEdge(vol);
   const price = market.asset === "SPX" ? getSPXPrice().price : btcPrice;
 
   if (price <= 0) return [];
@@ -357,7 +354,7 @@ function evaluate1H(market, btcPrice, momentum) {
   if (market.yesAsk > 5 && market.yesAsk < 88) {
     const edgeVsAsk = fair - market.yesAsk - SLIPPAGE;
     if (edgeVsAsk >= minEdge) {
-      if (momentum === "down" && edgeVsAsk < minEdge + 6) {}
+      if (momentum === "down" && edgeVsAsk < minEdge + 2) {}
       else {
         results.push({
           side: "YES", price: market.yesAsk, fair: fair,
@@ -694,7 +691,6 @@ async function runScan() {
       saveTrades();
     }
   }
-
   if (scanCount % 300 === 0) {
     console.log("");
     console.log("  ======= SUMMARY =======");
